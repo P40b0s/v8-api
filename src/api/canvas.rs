@@ -21,7 +21,7 @@ impl CanvasContext
 {
     pub fn new(width: u32, height: u32) -> Self {
         let mut paint = Paint::default();
-        paint.set_color(Color::BLACK); // Цвет по умолчанию
+        paint.set_color(Color::BLACK);
         paint.anti_alias = true;
 
         Self {
@@ -33,8 +33,7 @@ impl CanvasContext
         }
     }
 
-    /// Важнейший метод: конвертация из Premultiplied (Skia) в Straight (Browser)
-    /// Без этого getImageData() провалит тесты в твоем скрипте
+    /// конвертация из Premultiplied (Skia) в Straight (Browser) иначе работать не будет
     pub fn get_unpremultiplied_rect(&self, x: i32, y: i32, w: i32, h: i32) -> Vec<u8> {
         let full_width = self.pixmap.width() as i32;
         let full_height = self.pixmap.height() as i32;
@@ -122,7 +121,7 @@ pub fn get_extension() -> (deno_core::Extension, &'static str)
 #[op2(fast)]
 pub fn op_canvas_fill_rect(
     state: &mut OpState,
-    #[smi] id: u32, // ID канваса из JS
+    #[smi] id: u32,
     x: f64, y: f64, w: f64, h: f64
 ) {
     let manager = state.borrow::<CanvasManager>();
@@ -170,13 +169,10 @@ fn op_canvas_to_data_url(state: &mut OpState, #[smi] id: u32) -> String
     let ctx_cell = manager.contexts.get(&id).expect("Canvas not found");
     let ctx = ctx_cell.borrow();
 
-    // 1. Кодируем pixmap в PNG байты
     let png_data = ctx.pixmap.encode_png().expect("Failed to encode PNG");
 
-    // 2. Конвертируем в Base64
     let base64_str = base64::Engine::encode(&base64::engine::general_purpose::STANDARD,png_data);
 
-    // 3. Формируем Data URL
     format!("data:image/png;base64,{}", base64_str)
 }
 
@@ -184,7 +180,8 @@ fn op_canvas_to_data_url(state: &mut OpState, #[smi] id: u32) -> String
 fn op_canvas_set_fill_style(state: &mut OpState, #[smi] id: u32, #[string] color_str: String) 
 {
     let manager = state.borrow::<CanvasManager>();
-    if let Some(ctx_cell) = manager.contexts.get(&id) {
+    if let Some(ctx_cell) = manager.contexts.get(&id) 
+    {
         let mut ctx = ctx_cell.borrow_mut();
         ctx.paint.set_color(crate::helpers::colors::parse_css_color(&color_str));
     }
